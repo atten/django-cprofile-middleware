@@ -9,7 +9,7 @@ except:
     from io import StringIO
 
 import pstats
-from django.conf import settings
+from django.db import connection
 
 
 class ProfilerMiddleware(object):
@@ -31,8 +31,12 @@ class ProfilerMiddleware(object):
     http://www.slideshare.net/zeeg/django-con-high-performance-django-presentation.
     """
     def can(self, request):
-        return settings.DEBUG and 'prof' in request.GET and \
+        return 'prof' in request.GET and \
             request.user is not None and request.user.is_staff
+
+    def can_db(self, request):
+        return 'prof_db' in request.GET and \
+               request.user is not None and request.user.is_staff
 
     def process_view(self, request, callback, callback_args, callback_kwargs):
         if self.can(request):
@@ -53,4 +57,16 @@ class ProfilerMiddleware(object):
             stats.strip_dirs().sort_stats(request.GET.get('sort', 'time'))
             stats.print_stats(int(request.GET.get('count', 100)))
             response.content = '<pre>%s</pre>' % io.getvalue()
+
+        elif self.can_db(request):
+            sqltime = 0.0
+            num = 0
+            content = []
+            for q in connection.queries:
+                num += 1
+                sqltime += float(q['time'])
+                content.append('%d %ss %s' % (num, q['time'], q['sql']))
+            content.insert(0, "Total: %dms Count: %d" % (sqltime * 1000, num))
+            response.content = '<code>\n%s\n</code>' % '<hr>\n\n'.join(content)
+
         return response
