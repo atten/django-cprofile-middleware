@@ -9,7 +9,7 @@ except:
     from io import StringIO
 
 import pstats
-from django.db import connection
+from django.db import connections
 from django.utils.deprecation import MiddlewareMixin
 
 
@@ -63,10 +63,12 @@ class ProfilerMiddleware(MiddlewareMixin):
             sqltime = 0.0
             num = 0
             content = []
-            for q in connection.queries:
-                num += 1
-                sqltime += float(q['time'])
-                content.append('%d %ss %s' % (num, q['time'], q['sql']))
+            for db in connections.databases.keys():
+                content.append('Database: %s' % db)
+                for q in connections[db].queries:
+                    num += 1
+                    sqltime += float(q['time'])
+                    content.append('%d %ss %s' % (num, q['time'], q['sql']))
             content.insert(0, "Total: %dms Count: %d" % (sqltime * 1000, num))
             response.content = '<code>\n%s\n</code>' % '<hr>\n\n'.join(content)
 
