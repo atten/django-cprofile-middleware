@@ -11,6 +11,13 @@ except:
 import pstats
 from django.db import connections
 from django.utils.deprecation import MiddlewareMixin
+from django.contrib.admin.views import main
+
+NEW_ADMIN_IGNORED_PARAMS = ('prof', 'prof_db')
+
+# patch django admin to allow profiling query params
+if NEW_ADMIN_IGNORED_PARAMS[0] not in main.IGNORED_PARAMS:
+    main.IGNORED_PARAMS += NEW_ADMIN_IGNORED_PARAMS
 
 
 class ProfilerMiddleware(MiddlewareMixin):
