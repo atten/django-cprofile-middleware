@@ -12,6 +12,7 @@ import pstats
 from django.db import connections
 from django.utils.deprecation import MiddlewareMixin
 from django.contrib.admin.views import main
+from django.http import HttpResponse
 
 NEW_ADMIN_IGNORED_PARAMS = ('prof', 'prof_db')
 
@@ -64,7 +65,8 @@ class ProfilerMiddleware(MiddlewareMixin):
             stats = pstats.Stats(self.profiler, stream=io)
             stats.strip_dirs().sort_stats(request.GET.get('sort', 'time'))
             stats.print_stats(int(request.GET.get('count', 100)))
-            response.content = '<pre>%s</pre>' % io.getvalue()
+            content = '<pre>%s</pre>' % io.getvalue()
+            return HttpResponse(content)
 
         elif self.can_db(request):
             sqltime = 0.0
@@ -77,6 +79,7 @@ class ProfilerMiddleware(MiddlewareMixin):
                     sqltime += float(q['time'])
                     content.append('%d %ss %s' % (num, q['time'], q['sql']))
             content.insert(0, "Total: %dms Count: %d" % (sqltime * 1000, num))
-            response.content = '<code>\n%s\n</code>' % '<hr>\n\n'.join(content)
+            content = '<code>\n%s\n</code>' % '<hr>\n\n'.join(content)
+            return HttpResponse(content)
 
         return response
