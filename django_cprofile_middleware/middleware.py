@@ -73,11 +73,16 @@ class ProfilerMiddleware(MiddlewareMixin):
             num = 0
             content = []
             for db in connections.databases.keys():
+                queries = connections[db].queries
+                if not len(queries):
+                    continue
+
                 content.append('Database: %s' % db)
-                for q in connections[db].queries:
+                for q in queries:
                     num += 1
                     sqltime += float(q['time'])
                     content.append('%d %ss %s' % (num, q['time'], q['sql']))
+                    
             content.insert(0, "Total: %dms Count: %d" % (sqltime * 1000, num))
             content = '<code>\n%s\n</code>' % '<hr>\n\n'.join(content)
             return HttpResponse(content)
